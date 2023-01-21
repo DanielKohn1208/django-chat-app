@@ -1,0 +1,50 @@
+{%extends 'chatapp/base.html' %}
+{%block title%}Add Friend{%endblock%}
+{%block content%}
+<div style="max-width:600px">
+	<h1>Add Friend</h1>
+	<form action='/add-friend/' method="POST">
+		{% csrf_token %}
+		{%for field in form%}
+			<div class="mb-3">
+				{{field.label_tag}}
+				{{field}}
+				<div class="text-danger">
+					{{field.errors}}
+				</div>
+			</div>
+		{%endfor%}
+		<input class="btn btn-primary" type="submit" value="Add Friend">
+	</form>
+	<h3>List of friends</h3>
+	{%if friends|length != 0%}
+		<table class="table table-hover table-sm" style="">
+			<thead>	
+				<tr>
+					<th scope="row">Name</th>
+					<th scope="row">unfriend</th>
+				</tr>
+			</thead>
+			<tbody>
+				{%for friend in friends%}
+					<tr>
+						<td>
+							{{friend.friend.username}}
+						</td>
+						<td>
+							<form action='/unfriend/' method="POST">
+								{% csrf_token %}
+								<input type="hidden" id="roomName" value="{{friend.roomName}}" name="roomName" />
+								<button class="btn btn-danger">unfriend</button>
+							</form>
+						</td
+					</tr>
+				{%endfor%}
+			</tbody>
+		</table>
+	{%else%}
+		<p> You have no friends, use the above form to add them </p>
+	{%endif%}
+</div>
+{%endblock%}
+

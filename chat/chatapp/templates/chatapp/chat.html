@@ -1,0 +1,138 @@
+{% extends 'chatapp/chatbar.html' %}
+{% block title %}Chat{% endblock %}
+{% block chatwindow %}
+  <div class="d-flex flex-column" style="height:100%; width:100%;">
+    <div class="p-2 d-flex border-bottom justify-content-between mb-auto"
+         style="height:50px">
+      <h4>{{ currentChat.friend.username }}</h4>
+    </div>
+    <div class="flex-fill" style="overflow-y:auto;">
+      <div class="px-3 " id="message-display" style="" class="overflow-visible">
+        {% if currentChat.friend.username == None %}
+          <p class="text-center text-black-50">Choose a friend to start chatting with</p>
+        {% else %}
+          <div id="get-old-messages" class="d-flex justify-content-center">
+            <button class="btn btn-link" onclick="getOldMessages(this)">View Older Messages</button>
+          </div>
+          {% for message in previousMessages %}
+            {% if message.sender == request.user %}
+              <div style=""
+                   class="col-5 text-wrap text-break bg-primary text-light px-1 border border-1 rounded mt-1">
+                {{ message.content }}
+              </div>
+            {% else %}
+              <div style="max-width:45%"
+                   class="ms-auto col-6 text-wrap text-break bg-secondary text-light px-1 border border-1 rounded ms-auto mt-1">
+                {{ message.content }}
+              </div>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+    <div id="write-message" class="border-top" style="">
+      <div class="p-1 d-flex">
+        <input class="form-control form-control-sm shadow-none outline-none me-1n "
+               style="border-color: rgba(0,0,0,.125)"
+               type="text"
+               id="user-message"
+               placeholder="message">
+        <button id="send-btn" class="btn btn-outline-success btn-sm">
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="16"
+               height="16"
+               fill="currentColor"
+               class="bi bi-arrow-bar-up"
+               viewBox="0 0 16 16">
+            <path fill-rule="evenodd"
+            d="M8 10a.5.5 0 0 0 .5-.5V3.707l2.146 2.147a.5.5 0 0 0 .708-.708l-3-3a.5.5 0 0 0-.708 0l-3 3a.5.5 0 1 0 .708.708L7.5 3.707V9.5a.5.5 0 0 0 .5.5zm-7 2.5a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13a.5.5 0 0 1-.5-.5z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+  <script>
+    var currentOldMessagesPage = 1;
+    const chatSocket = new WebSocket(
+        'ws://' +
+        window.location.host +
+        '/ws/chat/' +
+        '{{activeChatId}}' +
+        '/'
+    );
+    document.getElementById("send-btn").onclick = function() {
+        sendMessage(document.getElementById("user-message").value)
+        document.getElementById("user-message").value = "";
+    };
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+
+        if (data.event_type == "chat_message") {
+            let message;
+            if ("{{request.user.username}}" == data.sender) {
+                message = `<div style="" class="col-5 text-wrap text-break bg-primary text-light px-1 border border-1 rounded mt-1">
+                    							${data.message}
+                    					</div>`
+            } else {
+                message = `<div style="max-width:45%; " class="ms-auto col-6 text-wrap text-break bg-secondary text-light px-1 border border-1 rounded ms-auto mt-1">
+                    					${data.message}
+                    								</div>`
+            }
+            document.getElementById("message-display").insertAdjacentHTML('beforeend', message)
+        } else {
+            let block = document.getElementById(`friend-block-${data.notif_friend_id}`)
+            let indicator = document.getElementById(`message-indicator-${data.notif_friend_id}`)
+            if (!block.contains(indicator)) {
+                let notif_tag = `<span id="message-indicator-${data.notif_friend_id}" class="badge bg-danger">new</span>`
+                block.insertAdjacentHTML('beforeend', notif_tag)
+            }
+        }
+    };
+
+
+    chatSocket.onclose = function(e) {
+        if (e.code == 3001) {
+            window.location.replace(window.location.origin + "/chat/unexpected-disconnect")
+        }
+    };
+
+    function sendMessage(message) {
+        chatSocket.send(JSON.stringify({
+            'message': message,
+        }));
+    }
+
+    function getOldMessages(button) {
+        button.disabled = true;
+        let data;
+        fetch("http://localhost:8000/old-messages/" + "{{activeChatId}}/" + currentOldMessagesPage)
+            .then(response => response.json())
+            .then(messages => {
+                messages.forEach(message => {
+                    if (message.fields.content != "") {
+                        if (message.fields.sender == {
+                                {
+                                    request.user.id
+                                }
+                            }) {
+                            message = `<div style="" class="col-5 text-wrap text-break bg-primary text-light px-1 border border-1 rounded mt-1">
+                    							${message.fields.content}
+                    					</div>`
+                        } else {
+
+                            message = `<div style="max-width:45%; " class="ms-auto col-6 text-wrap text-break bg-secondary text-light px-1 border border-1 rounded ms-auto mt-1">
+                    					${message.fields.content}
+                    								</div>`
+
+                        }
+                        document.getElementById("get-old-messages").insertAdjacentHTML('afterend', message)
+                    }
+                })
+                currentOldMessagesPage += 1
+                button.disabled = false;
+            })
+
+    }
+  </script>
+{% endblock %}

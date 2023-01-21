@@ -1,0 +1,27 @@
+{% extends 'chatapp/base.html' %}
+{%block title%}Login{%endblock%}
+{%block content%}
+<h1>Login</h1>
+<div id="messages">
+{% if messages %}
+		{% for message in messages %}
+			<div class="alert alert-danger" role="alert">
+				{{message}}	
+			</div>
+		{% endfor %}
+{% endif %}
+</div>
+<form action='/login/' method="POST">
+	{% csrf_token %}
+	{%for field in form%}
+		<div class="mb-3">
+			{{field.label_tag}}
+			{{field}}
+			<div class="text-danger">
+				{{field.errors}}
+			</div>
+		</div>
+	{%endfor%}
+	<input class="btn btn-primary" type="submit" value="Login">
+</form>
+{%endblock%}
